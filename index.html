@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Daily Habit Tracker — HabitFlow</title>
+  <meta name="description" content="A modern, high-performance daily habit tracker with weekly completion analytics, streaks, calendar tracking, and Supabase integration.">
+  <meta name="theme-color" content="#0a0d14">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for beautiful analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <!-- Canvas Confetti for celebratory animations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+
+  <!-- App Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="brand-section">
+        <div class="brand-icon-box">⚡</div>
+        <div>
+          <div class="brand-title">HabitFlow</div>
+          <div class="brand-subtitle">Daily Habit Tracker</div>
+        </div>
+      </div>
+
+      <nav style="flex: 1; display: flex; flex-direction: column;">
+        <ul class="nav-links">
+          <li class="nav-item">
+            <a class="nav-link active" data-view="dashboard" id="nav-dashboard">
+              <span class="nav-icon">📊</span>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-view="habits" id="nav-habits">
+              <span class="nav-icon">📋</span>
+              <span>My Habits</span>
+              <span class="nav-badge" id="nav-habits-count">6</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-view="calendar" id="nav-calendar">
+              <span class="nav-icon">📅</span>
+              <span>Calendar</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-view="statistics" id="nav-statistics">
+              <span class="nav-icon">📈</span>
+              <span>Statistics</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-view="settings" id="nav-settings">
+              <span class="nav-icon">⚙️</span>
+              <span>Settings</span>
+            </a>
+          </li>
+        </ul>
+
+        <!-- Sidebar Quick Streak Card -->
+        <div class="sidebar-streak-card">
+          <div class="streak-flame-icon">🔥</div>
+          <div class="streak-card-info">
+            <h4>Current Streak</h4>
+            <p id="sidebar-streak-value">5 Days</p>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- Top App Header -->
+      <header class="app-header">
+        <div class="header-left">
+          <button class="menu-toggle-btn" id="menu-toggle" aria-label="Toggle menu">☰</button>
+          <div class="header-title-group">
+            <h1 id="header-view-title">Dashboard</h1>
+            <p id="header-view-desc">Track your progress and maintain your daily streak</p>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-primary" id="btn-quick-add">
+            <span>+</span> <span>Add Habit</span>
+          </button>
+
+          <button class="btn-icon" id="btn-notifications-bell" title="Reminders" onclick="NotificationManager.showToast('All habit reminders are active!', 'info')">
+            <span>🔔</span>
+            <span class="notif-badge-dot"></span>
+          </button>
+
+          <div class="user-profile-pill" onclick="App.showView('settings')">
+            <div class="user-avatar" id="header-user-avatar">👨‍💻</div>
+            <span class="user-name" id="header-user-name">Ayush</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 1: DASHBOARD                                                  -->
+      <!-- ================================================================== -->
+      <section class="view-section active" id="view-dashboard">
+        
+        <!-- Hero Greeting & Today's Progress Banner -->
+        <div class="dashboard-hero-card">
+          <div class="hero-content">
+            <div class="hero-header">
+              <div class="hero-greeting">
+                <h2 id="hero-greeting-text">Good evening, Ayush 👋</h2>
+                <p class="hero-quote" id="hero-quote-text">"We are what we repeatedly do. Excellence, then, is not an act, but a habit."</p>
+              </div>
+              <div class="hero-date-badge" id="hero-date-badge">
+                Sat, Sep 26
+              </div>
+            </div>
+
+            <!-- Today's Progress Box -->
+            <div class="today-progress-container">
+              <div class="progress-header">
+                <div class="progress-title-wrap">
+                  <h3>Today's Progress</h3>
+                  <span class="progress-counter" id="today-progress-counter">3 of 6 completed</span>
+                </div>
+                <div class="progress-percentage" id="today-progress-percentage">75%</div>
+              </div>
+
+              <div class="progress-bar-track">
+                <div class="progress-bar-fill" id="today-progress-fill" style="width: 75%;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dashboard Two-Column Layout -->
+        <div class="dashboard-grid">
+          
+          <!-- Left Column: Today's Habits List -->
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3><span>🎯</span> Today's Habits</h3>
+                <span class="card-subtitle">Click status or adjust value to update progress</span>
+              </div>
+
+              <div class="filter-pill-group">
+                <button class="filter-pill active" data-filter="all">All</button>
+                <button class="filter-pill" data-filter="pending">Pending</button>
+                <button class="filter-pill" data-filter="completed">Done</button>
+              </div>
+            </div>
+
+            <!-- List of Habit Cards -->
+            <div class="habits-list" id="today-habits-list">
+              <!-- Dynamically populated by App.renderDashboardHabits() -->
+            </div>
+          </div>
+
+          <!-- Right Column: Weekly Progress & Streak Widgets -->
+          <div class="dashboard-sidebar-widgets">
+            
+            <!-- Weekly Progress Widget -->
+            <div class="card weekly-progress-card">
+              <div class="card-header">
+                <div class="card-title-group">
+                  <h3><span>📊</span> Weekly Progress</h3>
+                  <span class="card-subtitle">Completed tasks vs scheduled</span>
+                </div>
+              </div>
+
+              <!-- Week Stats Numbers -->
+              <div class="weekly-stats-row">
+                <div class="stat-box">
+                  <div class="stat-box-label">Completion %</div>
+                  <div class="stat-box-val highlight-green" id="widget-weekly-pct">85.7%</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-box-label">Completed</div>
+                  <div class="stat-box-val" id="widget-weekly-done">24</div>
+                </div>
+              </div>
+
+              <!-- Weekdays Row: Mon Tue Wed Thu Fri Sat Sun -->
+              <div class="weekdays-strip" id="weekdays-strip">
+                <!-- Dynamically populated with ✓, ✗, — -->
+              </div>
+
+              <!-- Formula Explainer Box -->
+              <div class="weekly-formula-box">
+                <span>Formula:</span>
+                <code>(Completed / Scheduled) × 100</code>
+              </div>
+            </div>
+
+            <!-- Streak Card -->
+            <div class="streak-highlight-card">
+              <div class="streak-card-top">
+                <span style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: var(--accent-warning); letter-spacing: 0.05em;">
+                  Consistency Level
+                </span>
+                <span style="font-size: 1.5rem;">🔥</span>
+              </div>
+
+              <div class="streak-score-wrap">
+                <span class="streak-days-big" id="widget-streak-days">5 Days</span>
+                <span style="font-size: 0.85rem; color: var(--text-secondary);">active streak</span>
+              </div>
+
+              <div style="margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; font-size: 0.82rem;">
+                <span style="color: var(--text-muted);">Personal Best:</span>
+                <strong style="color: var(--text-primary);" id="widget-best-streak">12 Days 🏆</strong>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 2: MY HABITS (MANAGEMENT)                                      -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-habits">
+        <div class="habits-manager-header">
+          <div class="manager-search-box">
+            <span>🔍</span>
+            <input type="text" id="manager-search-input" placeholder="Search habits or categories..." aria-label="Search habits">
+          </div>
+
+          <button class="btn btn-primary" onclick="App.openAddHabitModal()">
+            <span>+</span> <span>Create New Habit</span>
+          </button>
+        </div>
+
+        <div class="manager-grid" id="habits-manager-grid">
+          <!-- Dynamically populated by App.renderHabitsManager() -->
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 3: CALENDAR                                                   -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-calendar">
+        <div class="calendar-container">
+          
+          <div class="card">
+            <div class="calendar-header-bar">
+              <h3 class="calendar-month-title" id="calendar-month-title">September 2026</h3>
+              <div class="calendar-nav-buttons">
+                <button class="btn btn-secondary" onclick="CalendarManager.prevMonth()">◀</button>
+                <button class="btn btn-secondary" onclick="CalendarManager.goToToday()">Today</button>
+                <button class="btn btn-secondary" onclick="CalendarManager.nextMonth()">▶</button>
+              </div>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="calendar-grid" id="calendar-grid">
+              <!-- Dynamically populated by CalendarManager.render() -->
+            </div>
+
+            <!-- Legend -->
+            <div class="calendar-legend">
+              <div class="legend-item">
+                <div class="legend-box" style="background: rgba(16, 185, 129, 0.4); border: 1px solid var(--accent-success);"></div>
+                <span>100% Done</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-box" style="background: rgba(245, 158, 11, 0.35); border: 1px solid var(--accent-warning);"></div>
+                <span>Partial</span>
+              </div>
+              <div class="legend-item">
+                <div class="legend-box" style="background: var(--bg-card-solid); border: 1px solid var(--border-subtle);"></div>
+                <span>Pending / None</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Day Inspector Panel -->
+          <div class="day-inspector-card" id="day-inspector-content">
+            <!-- Dynamically populated by CalendarManager.renderDayInspector() -->
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 4: STATISTICS                                                 -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-statistics">
+        
+        <!-- Top KPI Cards -->
+        <div class="stats-overview-cards">
+          <div class="stat-kpi-card">
+            <div class="kpi-icon-pill" style="background: rgba(99, 102, 241, 0.15); color: var(--accent-primary);">📈</div>
+            <div class="kpi-val" id="stats-kpi-weekly" style="color: var(--accent-primary);">85.7%</div>
+            <div class="kpi-label">Weekly Completion Rate</div>
+          </div>
+
+          <div class="stat-kpi-card">
+            <div class="kpi-icon-pill" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-warning);">🔥</div>
+            <div class="kpi-val" id="stats-kpi-streak" style="color: var(--accent-warning);">5 Days</div>
+            <div class="kpi-label">Current Streak</div>
+          </div>
+
+          <div class="stat-kpi-card">
+            <div class="kpi-icon-pill" style="background: rgba(16, 185, 129, 0.15); color: var(--accent-success);">🏆</div>
+            <div class="kpi-val" id="stats-kpi-best-streak" style="color: var(--accent-success);">12 Days</div>
+            <div class="kpi-label">Best Streak Record</div>
+          </div>
+
+          <div class="stat-kpi-card">
+            <div class="kpi-icon-pill" style="background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan);">✅</div>
+            <div class="kpi-val" id="stats-kpi-total">42</div>
+            <div class="kpi-label">Total Completed Tasks</div>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid-row">
+          
+          <div class="chart-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3><span>📊</span> 7-Day Completion Rate Trend</h3>
+                <span class="card-subtitle">Daily completion percentage over time</span>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-weekly-trend"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="card-header">
+              <div class="card-title-group">
+                <h3><span>🍩</span> Habit Categories</h3>
+                <span class="card-subtitle">Distribution by area</span>
+              </div>
+            </div>
+            <div class="chart-wrapper">
+              <canvas id="chart-category-donut"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Habit Leaderboard -->
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-header">
+            <div class="card-title-group">
+              <h3><span>⭐</span> Habit Consistency Ranking</h3>
+              <span class="card-subtitle">Highest completion rate across all recorded days</span>
+            </div>
+          </div>
+          <div class="leaderboard-list" id="stats-habit-leaderboard">
+            <!-- Dynamically populated by StatisticsManager.renderHabitLeaderboard() -->
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ================================================================== -->
+      <!-- VIEW 5: SETTINGS                                                   -->
+      <!-- ================================================================== -->
+      <section class="view-section" id="view-settings">
+        <div class="settings-layout">
+          
+          <div class="settings-nav">
+            <button class="settings-nav-btn active" onclick="document.getElementById('sec-profile').scrollIntoView({behavior:'smooth'})">👤 Profile</button>
+            <button class="settings-nav-btn" onclick="document.getElementById('sec-prefs').scrollIntoView({behavior:'smooth'})">🎨 Preferences</button>
+            <button class="settings-nav-btn" onclick="document.getElementById('sec-data').scrollIntoView({behavior:'smooth'})">💾 Data & Backup</button>
+            <button class="settings-nav-btn" onclick="document.getElementById('sec-supabase').scrollIntoView({behavior:'smooth'})">🗄️ Supabase Schema</button>
+          </div>
+
+          <div class="settings-content-pane">
+            
+            <!-- Profile Section -->
+            <div class="settings-group" id="sec-profile">
+              <h3 class="settings-group-title">User Profile</h3>
+              <p class="settings-group-desc">Manage your display name and email address.</p>
+              
+              <form id="form-settings-profile">
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label class="form-label" for="settings-user-name">Display Name</label>
+                    <input type="text" id="settings-user-name" class="form-input" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="settings-user-email">Email Address</label>
+                    <input type="email" id="settings-user-email" class="form-input" required>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label" for="settings-user-avatar">Avatar Emoji / Icon</label>
+                    <input type="text" id="settings-user-avatar" class="form-input" maxlength="4">
+                  </div>
+                  <div class="form-group" style="justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary" style="align-self: flex-start; margin-top: 22px;">Save Profile</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+
+            <!-- Preferences Section -->
+            <div class="settings-group" id="sec-prefs">
+              <h3 class="settings-group-title">Preferences & Sound</h3>
+              <p class="settings-group-desc">Customize theme appearance, audio feedback, and notifications.</p>
+
+              <div class="form-grid" style="margin-bottom: 16px;">
+                <div class="form-group">
+                  <label class="form-label" for="settings-theme-select">Theme Mode</label>
+                  <select id="settings-theme-select" class="form-select">
+                    <option value="dark">🌙 Dark Mode (Glassmorphic)</option>
+                    <option value="light">☀️ Light Mode</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-toggle-row">
+                <div class="toggle-label-wrap">
+                  <h4>Sound Effects</h4>
+                  <p>Synthesized chime and audio feedback when habits are completed</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-sound" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+
+              <div class="setting-toggle-row">
+                <div class="toggle-label-wrap">
+                  <h4>Daily Reminders & Notifications</h4>
+                  <p>Receive scheduled alerts for uncompleted habits</p>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="toggle-notifications" checked>
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Data & Backup Section -->
+            <div class="settings-group" id="sec-data">
+              <h3 class="settings-group-title">Data Backup & Export</h3>
+              <p class="settings-group-desc">Export your habits and history as JSON or CSV, or restore your records.</p>
+
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="App.handleExportJSON()">
+                  <span>📥</span> <span>Export JSON Backup</span>
+                </button>
+                <button class="btn btn-secondary" onclick="App.handleExportCSV()">
+                  <span>📊</span> <span>Export History (CSV)</span>
+                </button>
+                <button class="btn btn-secondary" onclick="App.triggerImportJSON()">
+                  <span>📤</span> <span>Import Backup</span>
+                </button>
+                <input type="file" id="json-import-input" accept=".json" style="display: none;" onchange="App.handleImportFile(event)">
+                <button class="btn btn-secondary" onclick="App.handleResetData()">
+                  <span>🔄</span> <span>Reset to Demo Data</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Supabase Schema & College Project Details -->
+            <div class="settings-group" id="sec-supabase">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <h3 class="settings-group-title" style="margin-bottom: 0;">Supabase / PostgreSQL Schema</h3>
+                <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 6px 12px;" onclick="App.copySupabaseSQL()">📋 Copy SQL Script</button>
+              </div>
+              <p class="settings-group-desc">
+                Ready-to-run PostgreSQL DDL script with tables for <code>users</code>, <code>habits</code>, and <code>habit_completions</code>, complete with Foreign Keys, Indexes, and Row Level Security (RLS) policies.
+              </p>
+
+              <pre class="sql-code-box" id="supabase-sql-code">Loading schema SQL...</pre>
+            </div>
+
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+
+  </div>
+
+  <!-- ==================================================================== -->
+  <!-- MODAL: CREATE / EDIT HABIT                                            -->
+  <!-- ==================================================================== -->
+  <dialog id="dialog-habit">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-habit-title">Create New Habit</h3>
+        <button type="button" class="btn-close-modal" onclick="App.closeHabitModal()">✕</button>
+      </div>
+
+      <form id="form-habit-modal">
+        <input type="hidden" id="habit-form-id">
+
+        <!-- Quick Presets -->
+        <div style="margin-bottom: 12px;">
+          <label class="form-label" style="display:block; margin-bottom: 6px;">Quick Presets</label>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap;" id="habit-presets-strip">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Emoji Icon Picker -->
+        <div style="margin-bottom: 12px;">
+          <label class="form-label" style="display:block; margin-bottom: 6px;">Choose Icon</label>
+          <div class="emoji-selector-strip" id="emoji-selector-strip">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="form-group full-width">
+            <label class="form-label" for="habit-form-name">Habit Name *</label>
+            <input type="text" id="habit-form-name" class="form-input" placeholder="e.g. Reading, Exercise, Study" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="habit-form-category">Category</label>
+            <select id="habit-form-category" class="form-select">
+              <option value="Productivity">Productivity</option>
+              <option value="Fitness">Fitness</option>
+              <option value="Health">Health</option>
+              <option value="Mind">Mind</option>
+              <option value="Lifestyle">Lifestyle</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="habit-form-frequency">Frequency</label>
+            <select id="habit-form-frequency" class="form-select">
+              <option value="daily">Daily</option>
+              <option value="weekdays">Weekdays (Mon-Fri)</option>
+              <option value="weekends">Weekends</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="habit-form-target">Daily Target *</label>
+            <input type="number" id="habit-form-target" class="form-input" min="0.1" step="any" value="30" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="habit-form-unit">Unit</label>
+            <input type="text" id="habit-form-unit" class="form-input" placeholder="min, hrs, L, pages" value="min" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label class="form-label" for="habit-form-reminder">Daily Reminder (Optional)</label>
+            <input type="time" id="habit-form-reminder" class="form-input">
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 20px;">
+          <button type="button" class="btn btn-secondary" onclick="App.closeHabitModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-habit">Save Habit</button>
+        </div>
+      </form>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="js/supabase-schema.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/notifications.js"></script>
+  <script src="js/habits.js"></script>
+  <script src="js/tracking.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/statistics.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
